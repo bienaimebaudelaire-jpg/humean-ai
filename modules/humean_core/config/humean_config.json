@@ -2,7 +2,7 @@
   "version": "1.0",
   "system": {
     "name": "HUMEAN Cognitive System",
-    "mode": "production",
+    "mode": "development",
     "auto_update": true
   },
   "cognitive_engine": {
@@ -12,21 +12,9 @@
     "max_context_memories": 5
   },
   "apis": {
-    "ollama": {
-      "enabled": true,
-      "base_url": "http://localhost:11434",
-      "default_model": "llama3.2:3b"
-    },
-    "gemini": {
-      "enabled": true,
-      "api_key": "YOUR_GEMINI_API_KEY_HERE",
-      "model": "gemini-2.0-flash"
-    },
-    "huggingface": {
-      "enabled": false,
-      "api_key": "YOUR_HF_API_KEY_HERE",
-      "model": "microsoft/DialoGPT-medium"
-    }
+    "ollama": "",
+    "gemini": "",
+    "huggingface": ""
   },
   "modules": {
     "gateway": "operational",
@@ -34,10 +22,5 @@
     "scheduler": "ready",
     "ethics": "ready",
     "monitoring": "operational"
-  },
-  "energy_settings": {
-    "daily_cognitive_budget": 10.0,
-    "energy_optimization": true,
-    "memory_compression_threshold": 0.1
   }
 }

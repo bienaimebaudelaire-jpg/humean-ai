@@ -1,5 +1,5 @@
 ﻿"""
-GESTIONNAIRE INTELLIGENT DES GATEWAYS - Version corrigée
+GESTIONNAIRE INTELLIGENT DES GATEWAYS - Version finale
 """
 
 import logging
@@ -22,10 +22,10 @@ class GatewayManager:
         """Découvre les gateways avec leurs vraies classes"""
         self.logger.info("🔍 Découverte des gateways...")
         
-        # CORRECTION: Utiliser les bonnes classes basées sur le diagnostic
         gateway_candidates = [
             # (nom, module, classe, priorité, args d'init)
-            ("classic", "gateway.humean_gateway", "HumeanGateway", 1, False),  # Ne prend pas config
+            ("test", "gateway.test_gateway", "TestGateway", 0, True),  # Priorité haute pour les tests
+            ("classic", "gateway.humean_gateway", "HumeanGateway", 1, False),
             ("gemini", "gateway.humean_gateway_gemini", "humean_gateway_gemini", 2, True),
             ("ollama", "gateway.humean_gateway_ollama", "humean_gateway_ollama", 3, True),
             ("v2", "gateway.humean_gateway_v2", "humean_gateway_v2", 4, True)
@@ -40,7 +40,7 @@ class GatewayManager:
                 if takes_config:
                     gateway_instance = gateway_class(self.config)
                 else:
-                    gateway_instance = gateway_class()  # Sans config
+                    gateway_instance = gateway_class()
                 
                 self.available_gateways[name] = {
                     'instance': gateway_instance,
@@ -78,7 +78,6 @@ class GatewayManager:
         try:
             gateway = self.available_gateways[self.active_gateway]['instance']
             
-            # Vérifier si la méthode existe
             if hasattr(gateway, 'analyze_query'):
                 result = gateway.analyze_query(user_input)
                 self.logger.info(f"📊 Analyse réussie avec {self.active_gateway}")
