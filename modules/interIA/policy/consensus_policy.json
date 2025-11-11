@@ -1,0 +1,14 @@
+{
+  "policy_version": "1.4",
+  "consensus_weights": {
+    "openai": 0.35,
+    "deepseek": 0.40,
+    "grok": 0.25,
+    "fallback_local": 0.15
+  },
+  "error_handling": {
+    "402": "payment_required_fallback_ok",
+    "403": "forbidden_acknowledge_continue",
+    "429": "retry_after_30s_then_fallback"
+  }
+}

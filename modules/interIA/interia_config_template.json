@@ -1,0 +1,10 @@
+﻿{
+  "openai_api_key": "YOUR_OPENAI_API_KEY_HERE",
+  "deepseek_api_key": "YOUR_DEEPSEEK_API_KEY_HERE", 
+  "grok_api_key": "YOUR_GROK_API_KEY_HERE",
+  "openai_endpoint": "https://api.openai.com/v1/chat/completions",
+  "deepseek_endpoint": "https://api.deepseek.com/chat/completions",
+  "grok_endpoint": "https://api.x.ai/v1/chat/completions",
+  "openai_model": "gpt-4o",
+  "timeout_seconds": 30
+}

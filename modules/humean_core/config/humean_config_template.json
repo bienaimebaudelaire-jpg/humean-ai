@@ -1,0 +1,29 @@
+{
+  "version": "0.3",
+  "system": {
+    "name": "HUMEAN Cognitive System",
+    "mode": "development"
+  },
+  "apis": {
+    "ollama": {
+      "enabled": true,
+      "base_url": "http://localhost:11434",
+      "default_model": "llama3.2:3b"
+    },
+    "gemini": {
+      "enabled": false,
+      "api_key": "YOUR_GEMINI_API_KEY_HERE",
+      "model": "gemini-1.5-flash"
+    },
+    "huggingface": {
+      "enabled": false,
+      "api_key": "YOUR_HF_API_KEY_HERE",
+      "model": "mistralai/Mistral-7B-Instruct-v0.3"
+    },
+    "openrouter": {
+      "enabled": false,
+      "api_key": "YOUR_OPENROUTER_API_KEY_HERE",
+      "free_model": "google/gemma-7b-it:free"
+    }
+  }
+}
