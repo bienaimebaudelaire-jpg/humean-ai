@@ -126,3 +126,42 @@ if __name__ == "__main__":
     print("📊 Memory Stats:", stats)
     
     print("✅ ADAPTIVE MEMORY OPERATIONNELLE!")
+
+
+# Ajouter à la fin du fichier adaptive_memory.py
+
+    def get_context(self, user_input, intent=None):
+        """
+        Récupère le contexte pertinent depuis la mémoire
+        Version simplifiée pour le moment
+        """
+        if not hasattr(self, 'memories'):
+            return {}
+            
+        context = {
+            "relevant_memories": [],
+            "user_patterns": [],
+            "conversation_context": {}
+        }
+        
+        # Recherche simple dans les mémoires
+        for memory in self.memories[-5:]:  # Dernières 5 mémoires
+            if (intent and intent in memory.get('metadata', {}).get('intent', '')) or \
+               (user_input and any(word in user_input.lower() for word in memory.get('content', '').lower().split()[:10])):
+                context["relevant_memories"].append(memory)
+        
+        return context
+
+    def get_stats(self):
+        """Retourne les statistiques de la mémoire"""
+        return {
+            "total_memories": len(self.memories) if hasattr(self, 'memories') else 0,
+            "memory_size": "N/A",
+            "compression_ratio": 0.0
+        }
+
+    def clear(self):
+        """Vide la mémoire"""
+        if hasattr(self, 'memories'):
+            self.memories.clear()
+

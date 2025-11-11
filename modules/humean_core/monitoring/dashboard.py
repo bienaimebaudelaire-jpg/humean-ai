@@ -1,60 +1,44 @@
-﻿# modules/humean_core/monitoring/dashboard.py
-import json
-from datetime import datetime
-import sys
-from pathlib import Path
+﻿"""
+Tableau de bord de monitoring simplifié
+"""
 
-# Corriger l'import
-sys.path.append(str(Path(__file__).parent.parent))
-from gateway.humean_gateway_v2 import HumeanGatewayV2
+import logging
+from typing import Dict, Any
 
-class HumeanDashboard:
-    """Dashboard de monitoring HUMEAN en temps réel"""
+class MonitoringDashboard:
+    """Tableau de bord de monitoring basique"""
     
-    def __init__(self, gateway):
-        self.gateway = gateway
-        self.operation_log = []
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        self.interaction_count = 0
+        self.error_count = 0
+        self.performance_data = []
     
-    def log_operation(self, operation, details):
-        """Journaliser les opérations"""
-        entry = {
-            "timestamp": datetime.now().isoformat() + "Z",
-            "operation": operation,
-            "details": details
+    def log_interaction(self, interaction_data: Dict[str, Any]):
+        """Log une interaction"""
+        self.interaction_count += 1
+        self.logger.info(f"📊 Interaction #{self.interaction_count} logged")
+    
+    def log_error(self, error_data: Dict[str, Any]):
+        """Log une erreur"""
+        self.error_count += 1
+        self.logger.error(f"❌ Error #{self.error_count}: {error_data.get('message', 'Unknown')}")
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Retourne les statistiques"""
+        return {
+            "interaction_count": self.interaction_count,
+            "error_count": self.error_count,
+            "performance": "basic_monitoring"
         }
-        self.operation_log.append(entry)
-        print(f"📊 Dashboard: {operation}")
     
-    def generate_system_report(self):
-        """Générer un rapport système complet"""
-        status = self.gateway.get_system_status()
-        
-        # Corriger la clé manquante
-        active_modules = status.get("modules_registered", 0)
-        
-        report = {
-            "generated_at": datetime.now().isoformat() + "Z",
-            "system_status": status,
-            "recent_operations": self.operation_log[-10:],  # 10 dernières
-            "performance_metrics": {
-                "energy_efficiency": status["memory_stats"]["avg_energy"],
-                "cognitive_density": status["memory_entries"] / max(1, active_modules),
-                "system_health": "OPTIMAL" if status["memory_stats"]["avg_energy"] > 0.3 else "LEARNING"
-            }
+    def generate_report(self) -> Dict[str, Any]:
+        """Génère un rapport"""
+        return {
+            "summary": {
+                "total_interactions": self.interaction_count,
+                "total_errors": self.error_count,
+                "success_rate": 1.0 - (self.error_count / max(self.interaction_count, 1))
+            },
+            "status": "operational"
         }
-        
-        return report
-
-# Utilisation
-if __name__ == "__main__":
-    gw = HumeanGatewayV2()
-    dashboard = HumeanDashboard(gw)
-    
-    # Simuler des opérations
-    dashboard.log_operation("system_start", {"version": "HUMEAN v0.2"})
-    dashboard.log_operation("module_registration", {"module": "test_module"})
-    
-    # Générer le rapport
-    report = dashboard.generate_system_report()
-    print("📈 HUMEAN DASHBOARD REPORT:")
-    print(json.dumps(report, indent=2, ensure_ascii=False))

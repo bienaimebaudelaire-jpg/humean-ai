@@ -148,3 +148,109 @@ def interactive_config():
 
 if __name__ == "__main__":
     interactive_config()
+
+
+
+# Ajouter à la fin du fichier humean_config_manager.py
+
+class ConfigManager:
+    """Gestionnaire de configuration pour Humean AI"""
+    
+    def __init__(self, config_path=None):
+        self.config_path = config_path or "humean_config.json"
+        self.config = self._load_config()
+        self.logger = self._setup_logging()
+    
+    def _setup_logging(self):
+        import logging
+        logging.basicConfig(level=logging.INFO)
+        return logging.getLogger(__name__)
+    
+    def _load_config(self):
+        """Charge la configuration depuis le fichier"""
+        import json
+        import os
+        
+        if os.path.exists(self.config_path):
+            try:
+                with open(self.config_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                self.logger.error(f"Erreur chargement config: {e}")
+                return self._get_default_config()
+        else:
+            self.logger.warning(f"Fichier config {self.config_path} non trouvé, utilisation des valeurs par défaut")
+            return self._get_default_config()
+    
+    def _get_default_config(self):
+        """Retourne la configuration par défaut"""
+        return {
+            "version": "1.0",
+            "system": {
+                "name": "HUMEAN Cognitive System",
+                "mode": "development",
+                "auto_update": True
+            },
+            "cognitive_engine": {
+                "primary": "gemini",
+                "fallbacks": ["ollama", "huggingface"],
+                "energy_threshold": 0.5,
+                "max_context_memories": 5
+            },
+            "apis": {
+                "ollama": "",
+                "gemini": "", 
+                "huggingface": ""
+            },
+            "modules": {
+                "gateway": "operational",
+                "memory": "operational", 
+                "scheduler": "ready",
+                "ethics": "ready",
+                "monitoring": "operational"
+            }
+        }
+    
+    def get(self, key, default=None):
+        """Récupère une valeur de configuration"""
+        keys = key.split('.')
+        value = self.config
+        for k in keys:
+            if isinstance(value, dict) and k in value:
+                value = value[k]
+            else:
+                return default
+        return value
+    
+    def set(self, key, value):
+        """Définit une valeur de configuration"""
+        keys = key.split('.')
+        config = self.config
+        
+        for k in keys[:-1]:
+            if k not in config:
+                config[k] = {}
+            config = config[k]
+        
+        config[keys[-1]] = value
+    
+    def save(self):
+        """Sauvegarde la configuration dans le fichier"""
+        import json
+        try:
+            with open(self.config_path, 'w', encoding='utf-8') as f:
+                json.dump(self.config, f, indent=2, ensure_ascii=False)
+            self.logger.info(f"Configuration sauvegardée: {self.config_path}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Erreur sauvegarde config: {e}")
+            return False
+    
+    def get_api_key(self, service):
+        """Récupère une clé API"""
+        return self.get(f"apis.{service}", "")
+    
+    def get_module_status(self, module):
+        """Récupère le statut d'un module"""
+        return self.get(f"modules.{module}", "unknown")
+
