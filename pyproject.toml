@@ -8,9 +8,7 @@ version = "0.1.0"
 description = "Advanced cognitive AI system based on Free Energy Principle"
 readme = "README.md"
 license = {text = "AGPL-3.0"}
-authors = [
-    {name = "bienaimebaudelaire-jpg", email = ""}
-]
+authors = [{name = "bienaimebaudelaire-jpg", email = ""}]
 requires-python = ">=3.10"
 keywords = ["ai", "cognitive", "humean", "free-energy-principle"]
 classifiers = [
@@ -21,13 +19,11 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-
 dependencies = [
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
     "pydantic>=2.0.0",
-    "google-generativeai>=0.3.0",
-    "ollama>=0.1.0",
+    "aiohttp>=3.9.0",
 ]
 
 [project.optional-dependencies]
@@ -40,14 +36,11 @@ dev = [
     "mypy>=1.5.0",
     "pre-commit>=3.4.0",
 ]
-docs = [
-    "sphinx>=7.0.0",
-    "sphinx-rtd-theme>=1.3.0",
-]
+docs = ["sphinx>=7.0.0", "sphinx-rtd-theme>=1.3.0"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --cov=modules --cov-report=html --cov-report=term-missing"
+addopts = "-v --cov=modules --cov-report=term-missing"
 asyncio_mode = "auto"
 
 [tool.black]
