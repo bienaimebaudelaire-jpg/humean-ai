@@ -1,8 +1,10 @@
 """Cognitive orchestrator for managing multiple engines with fallbacks."""
 
+from __future__ import annotations
+
 import asyncio
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from modules.humean_core.engines.base import CognitiveEngine, EngineResponse
 from modules.humean_core.engines.factory import EngineFactory
@@ -11,81 +13,51 @@ logger = logging.getLogger(__name__)
 
 
 class CognitiveOrchestrator:
-    """Orchestrates multiple cognitive engines with intelligent fallback."""
+    """Try configured engines in order without mutating caller configuration."""
 
-    def __init__(self, engines_config: list[dict[str, Any]]):
-        """Initialize orchestrator with engine configurations.
-
-        Args:
-            engines_config: List of engine configs with 'type', 'api_key', 'model', etc
-        """
+    def __init__(self, engines_config: list[dict[str, Any]], request_timeout: float = 120.0):
         self.engines: list[CognitiveEngine] = []
         self.engine_names: list[str] = []
+        self.request_timeout = request_timeout
 
-        for config in engines_config:
-            engine_type = config.pop("type")
+        for original_config in engines_config:
+            config = dict(original_config)
+            engine_type = config.pop("type", None)
+            if not engine_type:
+                logger.warning("Skipping engine configuration without a type")
+                continue
             api_key = config.pop("api_key", None)
             model = config.pop("model", None)
-
             try:
-                engine = EngineFactory.create(
-                    engine_type=engine_type,
-                    api_key=api_key,
-                    model=model,
-                    config=config,
-                )
+                engine = EngineFactory.create(engine_type, api_key, model, config)
                 self.engines.append(engine)
                 self.engine_names.append(engine_type)
-                logger.info(f"Initialized {engine_type} engine")
-            except Exception as e:
-                logger.warning(f"Failed to initialize {engine_type}: {e}")
+                logger.info("Initialized %s engine", engine_type)
+            except (TypeError, ValueError) as error:
+                logger.warning("Failed to initialize %s: %s", engine_type, error)
 
     async def process(
         self,
         prompt: str,
-        context: Optional[list[dict[str, str]]] = None,
+        context: list[dict[str, str]] | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
     ) -> EngineResponse:
-        """Process prompt through engines with fallback.
-
-        Args:
-            prompt: Input prompt
-            context: Conversation context
-            temperature: Sampling temperature
-            max_tokens: Max tokens in response
-
-        Returns:
-            EngineResponse from first successful engine
-
-        Raises:
-            RuntimeError: If all engines fail
-        """
-        errors = []
-
+        """Process a prompt with timeout-protected sequential fallback."""
+        errors: list[str] = []
         for engine, engine_name in zip(self.engines, self.engine_names):
             try:
-                logger.debug(f"Trying {engine_name} engine")
                 if not engine.health_check():
-                    logger.warning(f"{engine_name} health check failed")
+                    errors.append(f"{engine_name}: health check failed")
                     continue
-
-                response = await engine.process(
-                    prompt=prompt,
-                    context=context,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
+                response = await asyncio.wait_for(
+                    engine.process(prompt, context, temperature, max_tokens),
+                    timeout=self.request_timeout,
                 )
-                logger.info(f"Successfully processed with {engine_name}")
+                logger.info("Successfully processed with %s", engine_name)
                 return response
+            except Exception as error:  # one provider must not stop fallback
+                errors.append(f"{engine_name}: {error}")
+                logger.warning("Engine %s failed: %s", engine_name, error)
 
-            except Exception as e:
-                error_msg = f"{engine_name}: {str(e)}"
-                errors.append(error_msg)
-                logger.warning(f"Engine {engine_name} failed: {e}")
-                continue
-
-        error_summary = "; ".join(errors)
-        raise RuntimeError(
-            f"All cognitive engines failed: {error_summary}"
-        )
+        raise RuntimeError(f"All cognitive engines failed: {'; '.join(errors)}")
