@@ -1,102 +1,101 @@
 """Configuration management for HUMEAN system."""
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-# Load .env file
 load_dotenv()
 
 
 class APIConfig(BaseModel):
-    """API Configuration."""
+    """Credentials and endpoints loaded from environment variables."""
 
-    ollama: Optional[str] = Field(default=None, description="Ollama API URL")
-    gemini: Optional[str] = Field(default=None, description="Gemini API key")
-    huggingface: Optional[str] = Field(default=None, description="HuggingFace API key")
+    ollama: str | None = None
+    gemini: str | None = None
+    huggingface: str | None = None
+    openai: str | None = None
+    anthropic: str | None = None
 
 
 class CognitiveEngineConfig(BaseModel):
-    """Cognitive Engine Configuration."""
+    """Engine routing and context constraints."""
 
-    primary: str = Field(default="gemini", description="Primary cognitive engine")
-    fallbacks: list[str] = Field(default=["ollama", "huggingface"], description="Fallback engines")
-    energy_threshold: float = Field(default=0.5, description="Energy threshold")
-    max_context_memories: int = Field(default=5, description="Max context memories")
+    primary: str = "gemini"
+    fallbacks: list[str] = Field(default_factory=lambda: ["ollama", "huggingface"])
+    energy_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+    max_context_memories: int = Field(default=5, ge=0)
 
 
 class ModulesConfig(BaseModel):
-    """Modules status configuration."""
+    """Declared status of HUMEAN modules."""
 
-    gateway: str = Field(default="operational")
-    memory: str = Field(default="operational")
-    scheduler: str = Field(default="ready")
-    ethics: str = Field(default="ready")
-    monitoring: str = Field(default="operational")
+    gateway: str = "operational"
+    memory: str = "operational"
+    scheduler: str = "ready"
+    ethics: str = "ready"
+    monitoring: str = "operational"
 
 
 class HumeanConfig(BaseModel):
     """Main HUMEAN configuration."""
 
-    version: str = Field(default="1.0")
-    name: str = Field(default="HUMEAN Cognitive System")
-    mode: str = Field(default="development")
-    auto_update: bool = Field(default=True)
+    version: str = "1.0"
+    name: str = "HUMEAN Cognitive System"
+    mode: str = "development"
+    auto_update: bool = True
     cognitive_engine: CognitiveEngineConfig = Field(default_factory=CognitiveEngineConfig)
     apis: APIConfig = Field(default_factory=APIConfig)
     modules: ModulesConfig = Field(default_factory=ModulesConfig)
 
 
-def load_config(config_path: Optional[Path] = None) -> HumeanConfig:
-    """Load configuration from JSON file with environment variable overrides.
+def _normalise_config(data: dict[str, Any]) -> dict[str, Any]:
+    """Accept both the legacy nested JSON shape and the typed model shape."""
+    normalised = dict(data)
+    system = normalised.pop("system", None)
+    if isinstance(system, dict):
+        for key in ("name", "mode", "auto_update"):
+            if key not in normalised and key in system:
+                normalised[key] = system[key]
+    return normalised
 
-    Args:
-        config_path: Path to config file. Defaults to humean_config.json in current dir.
 
-    Returns:
-        HumeanConfig instance with environment variables applied.
-    """
-    if config_path is None:
-        config_path = Path(__file__).parent / "config" / "humean_config.json"
+def load_config(config_path: Path | None = None) -> HumeanConfig:
+    """Load JSON configuration and apply environment-variable overrides."""
+    path = config_path or Path(__file__).parent / "config" / "humean_config.json"
+    config_data: dict[str, Any] = {}
+    if path.exists():
+        with path.open(encoding="utf-8-sig") as config_file:
+            config_data = _normalise_config(json.load(config_file))
 
-    # Load from JSON
-    config_data = {}
-    if config_path.exists():
-        with open(config_path) as f:
-            config_data = json.load(f)
-
-    # Override with environment variables
-    if gemini_key := os.getenv("GEMINI_API_KEY"):
-        if "apis" not in config_data:
-            config_data["apis"] = {}
-        config_data["apis"]["gemini"] = gemini_key
-
-    if ollama_url := os.getenv("OLLAMA_API_URL"):
-        if "apis" not in config_data:
-            config_data["apis"] = {}
-        config_data["apis"]["ollama"] = ollama_url
-
-    if hf_key := os.getenv("HUGGINGFACE_API_KEY"):
-        if "apis" not in config_data:
-            config_data["apis"] = {}
-        config_data["apis"]["huggingface"] = hf_key
+    apis = dict(config_data.get("apis", {}))
+    env_api_mapping = {
+        "GEMINI_API_KEY": "gemini",
+        "OLLAMA_API_URL": "ollama",
+        "HUGGINGFACE_API_KEY": "huggingface",
+        "OPENAI_API_KEY": "openai",
+        "ANTHROPIC_API_KEY": "anthropic",
+    }
+    for environment_name, api_name in env_api_mapping.items():
+        if value := os.getenv(environment_name):
+            apis[api_name] = value
+    config_data["apis"] = apis
 
     if mode := os.getenv("HUMEAN_MODE"):
         config_data["mode"] = mode
+    return HumeanConfig.model_validate(config_data)
 
-    return HumeanConfig(**config_data)
 
-
-# Global config instance
-_config: Optional[HumeanConfig] = None
+_config: HumeanConfig | None = None
 
 
 def get_config() -> HumeanConfig:
-    """Get or initialize the global config instance."""
+    """Return the cached application configuration."""
     global _config
     if _config is None:
         _config = load_config()
